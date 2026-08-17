@@ -9,6 +9,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
 static long long now_us(void) {
     struct timeval tv;
@@ -22,22 +23,22 @@ int parse_block_size(const char *text, size_t *out_block_size) {
     char *endptr = NULL;
     long value;
 
-    if (text == NULL || out_block_size == NULL) {
+    // if (text == NULL || out_block_size == NULL) {
+    //     return -1;
+    // }
+    if(text == NULL || out_block_size == NULL || *text == '\0'){
         return -1;
     }
 
-    /* TODO(student): parse block size safely with strtol
-       Requirements:
-       - reject empty input and trailing garbage
-       - reject overflow/underflow
-       - accept only values in [1, 4096]
-    */
     errno = 0;
     value = strtol(text, &endptr, 10);
     if (errno != 0 || endptr == text || *endptr != '\0') {
         return -1;
     }
-    if (value < 1 || value > 4096 || value > (long)SIZE_MAX) {
+    // if (value < 1 || value > 4096 || value > (long)SIZE_MAX) { 
+    //     return -1;
+    // }
+    if(value <1 || value > 4096){
         return -1;
     }
 
@@ -108,18 +109,19 @@ int copy_with_metrics(const char *input_path, const char *output_path, size_t bl
 
         m->bytes += (long long)n;
 
-        /* TODO(student): handle partial writes correctly.
-           Keep writing until all n bytes are written, and increment
-           write_calls once per actual write() syscall.
-        */
-        if (write(out_fd, buf, (size_t)n) < 0) {
-            perror("write");
-            free(buf);
-            close(in_fd);
-            close(out_fd);
-            return -1;
+        ssize_t total_written = 0;
+        while (total_written < n){
+            ssize_t w = write(out_fd, buf + total_written, (size_t)(n - total_written));
+            if (w <= 0){
+                perror("write");
+                free(buf);
+                close(in_fd);
+                close(out_fd);
+                return -1;
+            }
+            m->write_calls++;
+            total_written += w;
         }
-        m->write_calls++;
     }
 
     end_us = now_us();
@@ -174,3 +176,4 @@ int main(int argc, char **argv) {
     print_metrics(&m);
     return 0;
 }
+

@@ -13,7 +13,8 @@ Presenter
 #include <sys/stat.h>
 #include <fcntl.h>
 
-int main(void){
+int main(void)
+{
   char block[512];
   int in, out, nread;
   char null_char = '\0';
@@ -22,13 +23,18 @@ int main(void){
   in = open("file.in", O_RDONLY);
   out = open("file.out", O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
 
-  while((nread = read(in, block, sizeof(block))) > 0){
+  while ((nread = read(in, block, sizeof(block))) > 0)
+  {
     write(out, block, nread);
-    newlen += nread;
+    // newlen += nread;
   }
+
+  newlen = lseek(in, 0, SEEK_END);
+
   int startnull = ((newlen + 1) / 2) - 8; // half of 16
   lseek(out, startnull, SEEK_SET);
-  for(int i = 0; i < 16; i++){
+  for (int i = 0; i < 16; i++)
+  {
     write(out, &null_char, 1);
   }
   return 0;
